@@ -6,17 +6,19 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SpeedtestRunner.Data;
 using SpeedtestRunner.Services;
+using System;
+using System.IO;
 
 namespace SpeedtestRunner
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
-        {
-            Configuration = configuration;
-        }
+        private readonly IWebHostEnvironment _env;
 
-        public IConfiguration Configuration { get; }
+        public Startup(IWebHostEnvironment env)
+        {
+            _env = env;
+        }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
@@ -25,8 +27,10 @@ namespace SpeedtestRunner
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddHostedService<SpeedtestRunnerService>();
+
+            var db = Path.Combine(_env.ContentRootPath, "data", "app.db");
             services.AddDbContext<AppDbContext>(
-                options => options.UseSqlite("Data Source=app.db"));
+                options => options.UseSqlite($"Data Source={db}"));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
