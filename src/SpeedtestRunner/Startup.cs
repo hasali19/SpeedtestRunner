@@ -1,15 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SpeedtestRunner.Data;
+using SpeedtestRunner.Services;
 
 namespace SpeedtestRunner
 {
@@ -28,6 +24,9 @@ namespace SpeedtestRunner
         {
             services.AddRazorPages();
             services.AddServerSideBlazor();
+            services.AddHostedService<SpeedtestRunnerService>();
+            services.AddDbContext<AppDbContext>(
+                options => options.UseSqlite("Data Source=app.db"));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
