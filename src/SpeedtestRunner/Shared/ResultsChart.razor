@@ -21,7 +21,7 @@
     private LineDataset<TimeTuple<double>> _download = new LineDataset<TimeTuple<double>>
     {
         BorderColor = ColorUtil.ColorString(255, 100, 0, 1.0),
-        Label = "Download Speed (Mbps)",
+        Label = "Download",
         Fill = false,
         PointBackgroundColor = ColorUtil.RandomColorString(),
         BorderWidth = 2,
@@ -33,7 +33,7 @@
     private LineDataset<TimeTuple<double>> _upload = new LineDataset<TimeTuple<double>>
     {
         BorderColor = ColorUtil.ColorString(255, 200, 0, 1.0),
-        Label = "Upload Speed (Mbps)",
+        Label = "Upload",
         Fill = false,
         PointBackgroundColor = ColorUtil.RandomColorString(),
         BorderWidth = 2,
@@ -54,7 +54,7 @@
             },
             Legend = new Legend
             {
-                Position = Positions.Right,
+                Position = Positions.Bottom,
                 Labels = new LegendLabelConfiguration
                 {
                     UsePointStyle = true
