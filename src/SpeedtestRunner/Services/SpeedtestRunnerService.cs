@@ -1,25 +1,32 @@
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SpeedTest;
 using SpeedtestRunner.Data;
 using SpeedtestRunner.Data.Models;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SpeedtestRunner.Services
 {
     public sealed class SpeedtestRunnerService : BackgroundService
     {
+        private static readonly TimeSpan Interval = TimeSpan.FromHours(1);
+
         private readonly ILogger<SpeedtestRunnerService> _logger;
         private readonly IServiceProvider _services;
         private readonly SpeedTestClient _client = new SpeedTestClient();
 
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
-        public event Action<Speedtest> SpeedtestRun;
+        public event Action RunStarted;
+        public event Action<Speedtest> RunCompleted;
+        public event Action<DateTimeOffset> NextRunScheduled;
+
+        public bool IsRunning { get; private set; }
+        public DateTimeOffset NextRun { get; private set; }
 
         public SpeedtestRunnerService(
             ILogger<SpeedtestRunnerService> logger,
@@ -33,13 +40,18 @@ namespace SpeedtestRunner.Services
         {
             _logger.LogInformation($"{nameof(SpeedtestRunnerService)} is starting...");
 
+            IsRunning = false;
+            NextRun = DateTimeOffset.Now;
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 var test = await RunSpeedtest();
 
-                _logger.LogInformation($"Next test scheduled for {test.Timestamp.AddHours(1)}");
+                var next = test.Timestamp.Add(Interval);
+                _logger.LogInformation($"Next test scheduled for {next}");
+                NextRunScheduled?.Invoke(next);
 
-                await Task.Delay(TimeSpan.FromHours(1));
+                await Task.Delay(Interval);
             }
 
             _logger.LogInformation($"{nameof(SpeedtestRunnerService)} is stopping...");
@@ -48,6 +60,9 @@ namespace SpeedtestRunner.Services
         public async Task<Speedtest> RunSpeedtest()
         {
             await _semaphore.WaitAsync();
+
+            IsRunning = true;
+            RunStarted?.Invoke();
 
             using var scope = _services.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -64,19 +79,20 @@ namespace SpeedtestRunner.Services
                 test.ServerLatency = await _client.TestServerLatencyAsync(server);
                 test.DownloadSpeed = await _client.TestDownloadSpeedAsync(server);
                 test.UploadSpeed = await _client.TestUploadSpeedAsync(server);
+
+                _logger.LogInformation($"Test ran successfully - Time: {time}, Latency: {test.ServerLatency} ms, " +
+                    $"Download: {test.DownloadSpeed / 1000} Mbps, Upload: {test.UploadSpeed / 1000} Mbps");
+
+                context.Speedtests.Add(test);
+                await context.SaveChangesAsync();
             }
             finally
             {
+                IsRunning = false;
+                RunCompleted?.Invoke(test);
+
                 _semaphore.Release();
             }
-
-            _logger.LogInformation($"Test ran successfully - Time: {time}, Latency: {test.ServerLatency} ms, " +
-                $"Download: {test.DownloadSpeed / 1000} Mbps, Upload: {test.UploadSpeed / 1000} Mbps");
-
-            context.Speedtests.Add(test);
-            await context.SaveChangesAsync();
-
-            SpeedtestRun?.Invoke(test);
 
             return test;
         }
