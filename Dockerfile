@@ -3,9 +3,11 @@ WORKDIR /app
 
 COPY *.sln .
 COPY src/SpeedtestRunner/*.csproj ./src/SpeedtestRunner/
+COPY ext/SpeedTest.Net/SpeedTest/SpeedTest.csproj ./ext/SpeedTest.Net/SpeedTest/
 RUN dotnet restore
 
 COPY src/SpeedtestRunner/. ./src/SpeedtestRunner/
+COPY ext/SpeedTest.Net/SpeedTest/. ./ext/SpeedTest.Net/SpeedTest/
 WORKDIR /app/src/SpeedtestRunner
 RUN dotnet publish -c Release -o out
 
