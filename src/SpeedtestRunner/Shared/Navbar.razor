@@ -2,21 +2,19 @@
 @inject SpeedtestRunner.Services.SpeedtestRunnerService SpeedtestRunner
 
 <nav class="navbar navbar-dark bg-dark">
-    <a class="navbar-brand" href="/">Speedtest Runner</a>
-    <div class="row mt-2 mb-1">
-        <div class="col-sm-12">
-            @if (SpeedtestRunner.IsRunning)
-            {
-                <div class="spinner-border text-primary" role="status">
-                    <span class="sr-only">Loading...</span>
-                </div>
-            }
-            else
-            {
-                <button class="btn btn-primary" @onclick="@SpeedtestRunner.RunSpeedtest">Run Now</button>
-            }
+    <a class="navbar-brand flex-grow-1" href="/">Speed Test Runner</a>
+    @if (SpeedtestRunner.IsRunning)
+    {
+        <div class="d-flex justify-content-center ml-1 mr-1">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
         </div>
-    </div>
+    }
+    else
+    {
+        <button class="btn btn-primary ml-1 mr-1" @onclick="@SpeedtestRunner.RunSpeedtest">Run Now</button>
+    }
 </nav>
 
 @functions {
