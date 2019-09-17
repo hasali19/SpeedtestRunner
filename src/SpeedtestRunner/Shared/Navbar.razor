@@ -1,5 +1,4 @@
 @inherits ComponentBase
-@using SpeedtestRunner.Data.Models
 @inject SpeedtestRunner.Services.SpeedtestRunnerService SpeedtestRunner
 
 <nav class="navbar navbar-dark bg-dark">
@@ -22,17 +21,13 @@
 
 @functions {
 
-    [Parameter]
-    public EventCallback<Speedtest> OnTestRun { get; set; }
-
     private bool _running = false;
 
     private async Task RunSpeedtest(MouseEventArgs e)
     {
         _running = true;
-        var test = await SpeedtestRunner.RunSpeedtest();
+        await SpeedtestRunner.RunSpeedtest();
         _running = false;
-        await OnTestRun.InvokeAsync(test);
     }
 
 }

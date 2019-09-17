@@ -1,18 +1,7 @@
-@inherits ComponentBase
-@using SpeedtestRunner.Data.Models
+@inherits LayoutComponentBase
 
-<Navbar OnTestRun="OnTestRun" />
+<Navbar />
 
 <div class="container-fluid">
-    @ChildContent
+    @Body
 </div>
-
-@functions {
-
-    [Parameter]
-    public RenderFragment ChildContent { get; set; }
-
-    [Parameter]
-    public EventCallback<Speedtest> OnTestRun { get; set; }
-
-}

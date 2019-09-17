@@ -19,6 +19,8 @@ namespace SpeedtestRunner.Services
 
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
+        public event Action<Speedtest> SpeedtestRun;
+
         public SpeedtestRunnerService(
             ILogger<SpeedtestRunnerService> logger,
             IServiceProvider services)
@@ -73,6 +75,8 @@ namespace SpeedtestRunner.Services
 
             context.Speedtests.Add(test);
             await context.SaveChangesAsync();
+
+            SpeedtestRun?.Invoke(test);
 
             return test;
         }
