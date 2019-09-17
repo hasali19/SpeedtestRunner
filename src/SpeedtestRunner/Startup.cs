@@ -26,7 +26,8 @@ namespace SpeedtestRunner
         {
             services.AddRazorPages();
             services.AddServerSideBlazor();
-            services.AddHostedService<SpeedtestRunnerService>();
+            services.AddSingleton<SpeedtestRunnerService>();
+            services.AddHostedService(s => s.GetRequiredService<SpeedtestRunnerService>());
 
             var db = Path.Combine(_env.ContentRootPath, "data", "app.db");
             services.AddDbContext<AppDbContext>(
