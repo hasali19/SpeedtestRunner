@@ -1,0 +1,3 @@
+[submodule "ext/SpeedTest.Net"]
+	path = ext/SpeedTest.Net
+	url = https://github.com/hasali19/SpeedTest.Net

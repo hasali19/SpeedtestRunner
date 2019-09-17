@@ -11,13 +11,13 @@ using SpeedtestRunner.Data.Models;
 
 namespace SpeedtestRunner.Services
 {
-    public sealed class SpeedtestRunnerService : IHostedService, IDisposable
+    public sealed class SpeedtestRunnerService : BackgroundService
     {
         private readonly ILogger<SpeedtestRunnerService> _logger;
         private readonly IServiceProvider _services;
         private readonly SpeedTestClient _client = new SpeedTestClient();
 
-        private Timer _timer;
+        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
         public SpeedtestRunnerService(
             ILogger<SpeedtestRunnerService> logger,
@@ -27,56 +27,54 @@ namespace SpeedtestRunner.Services
             _services = services;
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation($"{nameof(SpeedtestRunnerService)} is starting...");
-            _timer = new Timer(RunSpeedtest, null, TimeSpan.Zero, TimeSpan.FromHours(1));
 
-            return Task.CompletedTask;
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                var test = await RunSpeedtest();
+
+                _logger.LogInformation($"Next test scheduled for {test.Timestamp.AddHours(1)}");
+
+                await Task.Delay(TimeSpan.FromHours(1));
+            }
+
+            _logger.LogInformation($"{nameof(SpeedtestRunnerService)} is stopping...");
         }
 
-        private void RunSpeedtest(object state)
+        public async Task<Speedtest> RunSpeedtest()
         {
+            await _semaphore.WaitAsync();
+
             using var scope = _services.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var time = DateTimeOffset.Now;
+            var test = new Speedtest { Timestamp = time };
 
-            _logger.LogInformation($"Running test at {time}...");
-
-            var settings = _client.GetSettings();
-            var server = settings.Servers
-                .OrderBy(s => s.Distance)
-                .FirstOrDefault();
-            var latency = _client.TestServerLatency(server);
-            var download = _client.TestDownloadSpeed(server);
-            var upload = _client.TestUploadSpeed(server);
-
-            var test = new Speedtest
+            try
             {
-                Timestamp = time,
-                ServerLatency = latency,
-                DownloadSpeed = download,
-                UploadSpeed = upload
-            };
+                var settings = await _client.GetSettingsAsync();
+                var server = settings.Servers
+                    .OrderBy(s => s.Distance)
+                    .FirstOrDefault();
+
+                test.ServerLatency = await _client.TestServerLatencyAsync(server);
+                test.DownloadSpeed = await _client.TestDownloadSpeedAsync(server);
+                test.UploadSpeed = await _client.TestUploadSpeedAsync(server);
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+
+            _logger.LogInformation($"Test ran successfully - Time: {time}, Latency: {test.ServerLatency} ms, " +
+                $"Download: {test.DownloadSpeed / 1000} Mbps, Upload: {test.UploadSpeed / 1000} Mbps");
 
             context.Speedtests.Add(test);
-            context.SaveChanges();
+            await context.SaveChangesAsync();
 
-            _logger.LogInformation($"Test ran successfully - Latency: {latency} ms, Download: {download / 1000} Mbps, Upload: {upload / 1000} Mbps");
-            _logger.LogInformation($"Next test scheduled for {time.AddHours(1)}");
-        }
-
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            _logger.LogInformation($"{nameof(SpeedtestRunnerService)} is stopping...");
-            _timer.Change(Timeout.Infinite, 0);
-
-            return Task.CompletedTask;
-        }
-
-        public void Dispose()
-        {
-            _timer?.Dispose();
+            return test;
         }
     }
 }
