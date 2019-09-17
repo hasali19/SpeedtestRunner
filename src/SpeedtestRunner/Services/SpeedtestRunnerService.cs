@@ -43,20 +43,20 @@ namespace SpeedtestRunner.Services
 
             for (; !stoppingToken.IsCancellationRequested; next = next.AddHours(4))
             {
-                await ScheduleSpeedtest(next);
+                await ScheduleSpeedtest(next, stoppingToken);
             }
 
             _logger.LogInformation($"{nameof(SpeedtestRunnerService)} is stopping...");
         }
 
-        private async Task<Speedtest> ScheduleSpeedtest(DateTimeOffset time)
+        private async Task<Speedtest> ScheduleSpeedtest(DateTimeOffset time, CancellationToken stoppingToken)
         {
             _logger.LogInformation($"Next test scheduled for {time}.");
 
             NextRun = time;
             NextRunScheduled?.Invoke(NextRun);
 
-            await Task.Delay(time - DateTimeOffset.Now);
+            await Task.Delay(time - DateTimeOffset.Now, stoppingToken);
 
             return await RunSpeedtest(time);
         }
