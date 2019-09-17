@@ -41,7 +41,7 @@ namespace SpeedtestRunner.Services
             var current = DateTimeOffset.Now;
             var next = current.AddMinutes(60 - current.Minute);
 
-            for (; !stoppingToken.IsCancellationRequested; next = next.AddHours(1))
+            for (; !stoppingToken.IsCancellationRequested; next = next.AddHours(4))
             {
                 await ScheduleSpeedtest(next);
             }
